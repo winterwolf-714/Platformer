@@ -1,0 +1,33 @@
+
+var y=100
+var gravity = 0.5
+var playerSpeed = 2
+var playerMass = 10
+var downForces = []
+var upForces = []
+img.onload  = function(){
+    animatePlayer();
+}
+
+
+function calculateYChange(){
+   const change = 0.5*gravity + playerSpeed
+   playerSpeed += gravity
+   return change
+}
+function calculateXChange(){
+    
+}
+
+function animatePlayer(){
+    const xChange = calculateXChange()
+    const yChange = calculateYChange()
+    ctx.save()
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.fillRect(0,canvas.height-100,canvas.width,canvas.height);
+    y +=yChange
+    ctx.drawImage(img,600,y,100,100 / (img.width / img.height));
+    ctx.restore()
+
+    requestAnimationFrame(animatePlayer);
+}
