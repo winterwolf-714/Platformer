@@ -31,3 +31,356 @@ function animatePlayer(){
 
     requestAnimationFrame(animatePlayer);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+getCollisions(side){
+        const elementData = {
+            "left" :0,
+            "right" :0,
+            "top":0,
+            "bottom":0
+        }
+        const collisions = []
+        const thisRight = this.x + this.width
+        const thisBottom = this.y + this.height
+        var var1;
+        var var2;
+        var var3;
+        var var4;
+        var var5;
+        var var6;
+        var var7;
+        
+        if (side == "top"){
+            var1 = elementData['bottom']
+            var2 = this.y-1
+            var3 = thisBottom
+            var4 = elementData['left']
+            var5 = thisRight
+            var6 = this.x
+            var7 = elementData['right']
+        }
+        else if (side == "bottom"){
+            var1 = elementData['top']
+            var2 = this.y
+            var3 = thisBottom +1
+            var4 = elementData['left']
+            var5 = thisRight
+            var6 = this.x
+            var7 = elementData['right']
+        }
+        else if (side == "left"){
+            var1 = elementData['right']
+            var2 = this.x-1
+            var3 = thisRight
+            var4 = elementData['top']
+            var5 = this.y
+            var6 = thisBottom
+            var7 = elementData['bottom']
+        }
+        else if (side == "right"){
+            var1 = elementData['left']
+            var2 = this.x
+            var3 = thisRight+1
+            var4 = elementData['top']
+            var5 = this.y
+            var6 = thisBottom
+            var7 = elementData['bottom']
+        }
+        for (var element in globalValues.movableElements){
+            elementData["bottom"] = element.y + element.height
+            elementData["right"] = element.x + element.width
+            elementData["top"] = element.y
+            elementData["left"] = element.x
+            if ( var1 >= var2 && var1 <= var3 ){
+                if ((var4 <= var5 && var4 >= var6)|| (var7 <= var5 && var7 >= var6)){
+                    collisions.push(element)
+                }
+            }
+        }
+        return collisions
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        import {globalValues} from "../main.js"
+import { staticElement } from "./staticElement.js"
+
+var iteration = 0
+
+export class movableElement{
+    constructor(speedX,speedY,mass,src,x,y,width,friction){
+        
+        this.speedX=speedX
+        this.speedY = speedY
+        this.mass = mass
+        this.friction = friction
+        this.x = x
+        this.y = y
+        this.width = width
+        this.height;
+        globalValues.movableElements.push(this)
+
+        this.img = new Image();
+        this.isLoaded = false;
+        this.img.src="images/" + src
+        this.img.onload = () => {
+            this.isLoaded = true;
+            this.height = this.width / (this.img.width / this.img.height)
+        };    
+    }
+    draw(){
+        if (this.isLoaded){
+        globalValues.ctx.drawImage(this.img,this.x,this.y,this.width,this.height);
+        
+        }
+    }
+    getNetXForces(){
+        const collisions = this.getCollisions()
+        const forces = []
+
+        const speedForce = this.mass * this.speedX / globalValues.tpf
+        forces.push(speedForce)
+
+        
+
+        var netX = 0;
+        for (var force of forces){
+            netX += parseFloat(force)
+        }
+
+        
+
+        if (netX > 0 && collisions['staticElements']['right'].length > 0){
+            const normal = -1 * netX
+            forces.push(normal)
+        }
+        else if (netX < 0 && collisions['staticElements']['left'].length > 0){
+            const normal = -1 * netX
+            forces.push(normal)
+        }
+
+
+        return forces
+    }
+    getNetYForces(){
+        const collisions = this.getCollisions()
+        const forces = []
+
+        const gravityForce = globalValues.gravity*this.mass
+        forces.push(gravityForce)
+
+        const speedForce = this.mass * this.speedY / globalValues.tpf
+        forces.push(speedForce)
+
+        var netY = 0;
+        for (var force of forces){
+            netY += parseFloat(force)
+        }
+
+        if (netY > 0 && collisions['staticElements']['top'].length > 0){
+            const normal = -1 * netY
+            forces.push(normal)
+        }
+        else if (netY < 0 && collisions['staticElements']['bottom'].length > 0){
+            
+            const normal = -1 * netY 
+            forces.push(normal)
+        }
+        
+        return forces
+    }
+    applyPhysics(){
+        
+        this.calculateXForces()
+        this.calculateYForces()
+        this.draw()
+    }
+    calculateXForces(){
+        const xForces = this.getNetXForces()
+        var netX = 0;
+        for (var force of xForces){
+            netX += parseFloat(force)
+        }
+        const acceleration = netX/this.mass
+        
+        const newSpeed = (this.speedX)+(acceleration*globalValues.tpf)
+        
+        const newX = this.x + ((newSpeed*globalValues.tpf)+(0.5*acceleration*((globalValues.tpf)**2)))
+        iteration += 1
+        if (iteration % 60 == 0 && iteration <= 560){
+        debugLog(`${iteration/60}: ${(0.5*acceleration*((globalValues.tpf)**2))}`)
+        }
+        this.speedX = newSpeed
+        this.x = newX
+        
+    }
+    calculateYForces(){
+        const yForces = this.getNetYForces()
+        
+        var netY = 0;
+        
+        for (var force of yForces){
+            netY += parseFloat(force)
+        }
+        
+        
+        const acceleration = netY/this.mass
+        
+        const newSpeed = (acceleration*globalValues.tpf)
+        
+        const newY = this.y + ((this.speedY*globalValues.tpf)+(0.5*acceleration*((globalValues.tpf)**2)))*(-1)
+        this.speedY = newSpeed
+        this.y = newY
+
+    }
+    getCollisions(){
+        const collisions = {
+            "movableElements" : {
+                "left"   : [],
+                "right"  : [],
+                "top"    : [],
+                "bottom" : []
+            },
+            "staticElements"  : {
+                "left"   : [],
+                "right"  : [],
+                "top"    : [],
+                "bottom" : []
+            }  
+        }
+        const thisLeft = this.x
+        const thisRight = this.x + this.width
+        const thisTop = this.y
+        const thisBottom = this.y + this.height
+        for (var part of Object.keys(collisions)){
+            for (var element of globalValues[part]){
+                const elementLeft = element.x
+                const elementRight = element.x + element.width
+                const elementTop = element.y
+                const elementBottom = element.y + element.height
+                if (elementLeft <= thisRight+1 && elementRight >= thisLeft-1 && elementBottom >= thisTop-1 && elementTop <= thisBottom+1){
+                    const distances = {"right":elementLeft - thisRight,"left" : elementRight - thisLeft, "bottom" : elementTop - thisBottom,"top" : elementBottom - thisTop}
+                    var shortest = "right"
+                    for (var side of Object.keys(distances)){
+                        if (Math.abs(distances[side])  < Math.abs(distances[shortest])){
+                            shortest = side
+                        }
+                    }
+                    
+                    collisions[part][shortest].push(element)
+                }
+            }
+        }
+        
+        return collisions
+        
+    }
+    
+    
+}
+
+
+
+
+
+function debugLog(msg){
+    var existing = $("#debugBox").text();
+    $("#debugBox").text(msg + "\n" + existing);
+}
+$("body").append('<div id="debugBox" style="position:fixed;top:0;left:0;z-index:9999;background:rgba(0,0,0,0.7);color:#00ff00;font-size:12px;font-family:monospace;padding:8px;max-height:200px;overflow-y:auto;white-space:pre;pointer-events:none;"></div>')
+
+
+
+
+
+getNetXForces(){
+        const collisions = this.getCollisions()
+        const forces = []
+
+        const speedForce = this.mass * this.speedX / globalValues.tpf
+        forces.push(speedForce)
+
+        
+
+        var netX = 0;
+        for (var force of forces){
+            netX += parseFloat(force)
+        }
+
+        
+
+        if (netX > 0 && collisions['staticElements']['right'].length > 0){
+            const normal = -1 * netX
+            forces.push(normal)
+        }
+        else if (netX < 0 && collisions['staticElements']['left'].length > 0){
+            const normal = -1 * netX
+            forces.push(normal)
+        }
+
+
+        return forces
+    }
+    getNetYForces(){
+        const collisions = this.getCollisions()
+        const forces = []
+
+        const gravityForce = globalValues.gravity*this.mass
+        forces.push(gravityForce)
+
+        const speedForce = this.mass * this.speedY / globalValues.tpf
+        forces.push(speedForce)
+
+        var netY = 0;
+        for (var force of forces){
+            netY += parseFloat(force)
+        }
+
+        if (netY > 0 && collisions['staticElements']['top'].length > 0){
+            const normal = -1 * netY
+            forces.push(normal)
+        }
+        else if (netY < 0 && collisions['staticElements']['bottom'].length > 0){
+            
+            const normal = -1 * netY 
+            forces.push(normal)
+        }
+        
+        return forces
+    }
