@@ -5,6 +5,7 @@ var iteration = 0
 var testVal = 0
 export class movableElement{
     constructor(speedX,speedY,mass,src,x,y,width,friction){
+        this.currentCollisions;
         this.forcesX = []
         this.forcesY = []
         this.speedX=speedX
@@ -16,6 +17,10 @@ export class movableElement{
         this.width = width
         this.height;
         globalValues.movableElements.push(this)
+        this.futureX;
+        this.futureY;
+        this.futureSpeedX
+        this.futureSpeedY
 
         this.img = new Image();
         this.isLoaded = false;
@@ -32,56 +37,113 @@ export class movableElement{
         
         }
     }
-    applyPhysics(){
-        
+    applyPhysics(stage){
+        if (stage == 0){
+            this.getStartingData()
+        }
+        else if (stage == 1){
+            this.applyCollisionForces()
+        }
+        else if (stage == 2){
+            this.updateData()
+        }
+        else if (stage == 3){
+            this.draw()
+        }
+    }   
+
+    getStartingData(){
+        this.currentCollisions = this.getCollisions()
         this.calculateXForces()
         this.calculateYForces()
-        this.draw()
+
     }
+    updateData(){
+        this.calculateXForces()
+        this.calculateYForces()
+        this.x = this.futureX
+        this.y = this.futureY
+        this.speedX = this.futureSpeedX
+        this.speedY = this.futureSpeedY
+        this.forcesX = []
+        this.forcesY = []
+    }
+    applyCollisionForces(){
+        if (this.currentCollisions['movableElements']['right'].length > 0){
+            const collidedElement = this.currentCollisions['movableElements']['right'][0]
+            const thisForce = (this.mass*(this.futureSpeedX))/globalValues.tpf
+            const collidedForce = (collidedElement.mass*(collidedElement.futureSpeedX))/globalValues.tpf
+            const netForce = thisForce + (-1)*(collidedForce)
+            if (netForce > 0){
+                collidedElement.applyForce('x',netForce)
+            }
+        }
+        if (this.currentCollisions['movableElements']['left'].length > 0){
+            
+            const collidedElement = this.currentCollisions['movableElements']['left'][0]
+            const thisForce = (this.mass*(this.futureSpeedX))/globalValues.tpf
+            const collidedForce = (collidedElement.mass*(collidedElement.futureSpeedX))/globalValues.tpf
+            const netForce = thisForce + (-1)*(collidedForce)
+            if (netForce < 0){
+                collidedElement.applyForce('x',netForce)
+            }
+        }
+        if (this.currentCollisions['movableElements']['top'].length > 0){
+            const collidedElement = this.currentCollisions['movableElements']['top'][0]
+            const thisForce = (this.mass*(this.futureSpeedY))/globalValues.tpf
+            const collidedForce = (collidedElement.mass*(collidedElement.futureSpeedY))/globalValues.tpf
+            const netForce = thisForce + (-1)*(collidedForce)
+            
+            if (netForce > 0){
+                collidedElement.applyForce('y',netForce)
+            }
+        }
+        if (this.currentCollisions['movableElements']['bottom'].length > 0){
+            const collidedElement = this.currentCollisions['movableElements']['bottom'][0]
+            const thisForce = (this.mass*(this.futureSpeedY))/globalValues.tpf
+            const collidedForce = (collidedElement.mass*(collidedElement.futureSpeedY))/globalValues.tpf
+            const netForce = thisForce + (-1)*(collidedForce)
+            if (netForce < 0){
+                collidedElement.applyForce('y',netForce)
+            }
+        }
+    }
+
+
     calculateXForces(){
-        
-        const collisions = this.getCollisions()
+        const collisions = this.currentCollisions
         const sidesFlushed = []
+
         var netX = 0;
         for (var force of this.forcesX){
             netX += parseFloat(force)
         }
         
-        const acceleration1 = netX/this.mass
+        var acceleration = netX/this.mass
 
-        const newSpeed1 = (this.speedX)+(acceleration1*globalValues.tpf)
-        if (newSpeed1 > 0 && collisions['staticElements']['right'].length > 0){
+        var newSpeed = (this.speedX)+(acceleration*globalValues.tpf)
+
+        if (newSpeed > 0 && collisions['staticElements']['right'].length > 0){
             sidesFlushed.push("right")
-            const reactionForce = (this.mass*(-newSpeed1))/globalValues.tpf
+            const reactionForce = (this.mass*(-newSpeed))/globalValues.tpf
             this.forcesX.push(reactionForce)
         }
-        else if(newSpeed1 < 0 && collisions['staticElements']['left'].length > 0){
+        else if(newSpeed < 0 && collisions['staticElements']['left'].length > 0){
             sidesFlushed.push("left")
-            const reactionForce = (this.mass*(-newSpeed1))/globalValues.tpf
+            const reactionForce = (this.mass*(-newSpeed))/globalValues.tpf
             this.forcesX.push(reactionForce)
         }
-        if (newSpeed1 > 0 && collisions['movableElements']['right'].length > 0){
-            
-            collisions['movableElements']['right'][0].applyForce("x",(this.mass*(newSpeed1))/globalValues.tpf)
-            const reactionForce = (this.mass*(-newSpeed1))/globalValues.tpf
-            this.forcesX.push(reactionForce)
-        }
-        else if(newSpeed1 < 0 && collisions['movableElements']['left'].length > 0){
-            collisions['movableElements']['left'][0].applyForce("x",(this.mass*(newSpeed1))/globalValues.tpf)
-            const reactionForce = (this.mass*(-newSpeed1))/globalValues.tpf
-            this.forcesX.push(reactionForce)
-        }
-        
+
         netX = 0;
         for (var force of this.forcesX){
             netX += parseFloat(force)
         }
 
-        const acceleration2 = netX/this.mass
+        acceleration = netX/this.mass
 
-        const newSpeed2 = (this.speedX)+(acceleration2*globalValues.tpf)
+        newSpeed = (this.speedX)+(acceleration*globalValues.tpf)
         
-        var newX = this.x + ((newSpeed2*globalValues.tpf)+(0.5*acceleration2*((globalValues.tpf)**2)))
+        var newX = this.x + ((newSpeed*globalValues.tpf)+(0.5*acceleration*((globalValues.tpf)**2)))
         
         for (var sideFlushed of sidesFlushed){
             if (sideFlushed == "right"){
@@ -93,13 +155,12 @@ export class movableElement{
             }
         }
 
-        this.speedX = newSpeed2
-        this.x = newX
-        this.forcesX = []
+        this.futureSpeedX = newSpeed
+        this.futureX = newX
         
     }
     calculateYForces(){
-        const collisions = this.getCollisions()
+        const collisions = this.currentCollisions
         const sidesFlushed = []
         const gravityForce = globalValues.gravity*this.mass
         this.forcesY.push(gravityForce)
@@ -109,29 +170,20 @@ export class movableElement{
             netY += parseFloat(force)
         }
         
-        const acceleration1 = netY/this.mass
-        const newSpeed1 = (this.speedY)+(acceleration1*globalValues.tpf)
+        var acceleration = netY/this.mass
+
+        var newSpeed = (this.speedY)+(acceleration*globalValues.tpf)
         
         
-        if (newSpeed1 > 0 && collisions['staticElements']['top'].length > 0){
+        if (newSpeed > 0 && collisions['staticElements']['top'].length > 0){
             sidesFlushed.push("top")
-            const reactionForce = (this.mass*(-newSpeed1))/globalValues.tpf
+            const reactionForce = (this.mass*(-newSpeed))/globalValues.tpf
             this.forcesY.push(reactionForce)
         }
-        else if (newSpeed1 < 0 && collisions['staticElements']['bottom'].length > 0){
+        else if (newSpeed < 0 && collisions['staticElements']['bottom'].length > 0){
             sidesFlushed.push("bottom")
             
-            const reactionForce = (this.mass*(-newSpeed1))/globalValues.tpf
-            this.forcesY.push(reactionForce)
-        }
-        if (newSpeed1 > 0 && collisions['movableElements']['top'].length > 0){
-            collisions['movableElements']['top'][0].applyForce("y",(this.mass*(newSpeed1))/globalValues.tpf)
-            const reactionForce = (this.mass*(-newSpeed1))/globalValues.tpf
-            this.forcesY.push(reactionForce)
-        }
-        else if(newSpeed1 < 0 && collisions['movableElements']['bottom'].length > 0){
-            collisions['movableElements']['bottom'][0].applyForce("y",(this.mass*(newSpeed1))/globalValues.tpf)
-            const reactionForce = (this.mass*(-newSpeed1))/globalValues.tpf
+            const reactionForce = (this.mass*(-newSpeed))/globalValues.tpf
             this.forcesY.push(reactionForce)
         }
 
@@ -140,11 +192,11 @@ export class movableElement{
             netY += parseFloat(force)
         }
         
-        const acceleration2 = netY/this.mass
+        acceleration = netY/this.mass
 
-        const newSpeed2 = (this.speedY)+(acceleration2*globalValues.tpf)
+        newSpeed = (this.speedY)+(acceleration*globalValues.tpf)
         
-        var newY = this.y + ((newSpeed2*globalValues.tpf)+(0.5*acceleration2*((globalValues.tpf)**2)))*(-1)
+        var newY = this.y + ((newSpeed*globalValues.tpf)+(0.5*acceleration*((globalValues.tpf)**2)))*(-1)
         
         for (var sideFlushed of sidesFlushed){
             if (sideFlushed == "top"){
@@ -156,9 +208,8 @@ export class movableElement{
             }
         }
         
-        this.speedY = newSpeed2
-        this.y = newY
-        this.forcesY = []
+        this.futureSpeedY = newSpeed
+        this.futureY = newY
     }
     getCollisions(){
         const collisions = {
